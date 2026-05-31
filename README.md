@@ -1,137 +1,194 @@
-# Product Catalog App
+# 🛍️ Fake Store App
 
-A production-grade, premium Flutter application demonstrating **Feature-First Clean Architecture**, strict **BLoC State Management (Subclass Pattern)**, and type-safe data transformations.
-
-The application communicates with the [Fake Store API](https://fakestoreapi.com/) for authentication and product exploration, caching favorite product IDs locally using `SharedPreferences`.
+A modern e-commerce catalog app built with Flutter using **Clean Architecture** and **BLoC** state management, powered by the [FakeStore API](https://fakestoreapi.com).
 
 ---
 
-## 🛠️ Setup Instructions
+## 📱 Screenshots
+
+| Login (Dark) | Product List (Dark) | Product Detail (Light) |
+|---|---|---|
+| Login screen with gradient | Product grid with search & filters | Detail page with quantity selector |
+
+---
+
+## ⚙️ Setup Instructions
 
 ### Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (Stable Channel, SDK `^3.11.3`)
-- [Dart SDK](https://dart.dev/get-started) (Null safety enabled)
-- A physical device or emulator (Android / iOS / Web)
+- Flutter **3.x (latest stable)**
+- Dart **3.x**
+- Android SDK (for APK) or Xcode (for iOS)
 
-### Step 1: Install Dependencies
-Download and fetch all required pub packages:
+### Steps
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/gulamanasiyah-cyber/fake_store_app_test.git
+cd fake_store_app_test
+
+# 2. Install dependencies
 flutter pub get
-```
 
-### Step 2: Run Static Code Analysis
-Ensure that all code complies with formatting and type safety:
-```bash
-flutter analyze
-```
-
-### Step 3: Run the Application
-Start the application in debug mode on your connected emulator or device:
-```bash
+# 3. Run the app
 flutter run
-```
 
-### Step 4: Build Release APK
-To compile and generate the release build APK:
-```bash
+# 4. Build release APK
 flutter build apk --release
 ```
-The resulting APK will be saved under: `build/app/outputs/flutter-apk/app-release.apk`.
+
+### Test Credentials
+The app uses the FakeStore API. Use these credentials to log in:
+```
+Username: johnd
+Password: m38rmF$
+```
 
 ---
 
-## 🏗️ Architecture Explanation
+## 🏛️ Architecture
 
-The project uses **Feature-First Clean Architecture** which splits features (`auth` and `product`) into isolated folders. Each feature has three distinct layers to ensure separation of concerns:
+This project follows **Clean Architecture** principles, separating the codebase into three distinct layers:
 
 ```
 lib/
-├── core/                  # Core modules shared across features
-│   ├── errors/            # Base Failures definitions
-│   ├── network/           # Dio HTTP client wrapper
-│   └── theme/             # Premium color palettes & Typography
-├── features/              # Feature directories
-│   ├── auth/              # Authentication Feature
-│   └── product/           # Product Catalog Feature
-│       ├── data/          # Models, Remote & Local Sources, Repo Impls
-│       ├── domain/        # Entities, Use Cases, Repository Contracts
-│       └── presentation/  # UI Pages & Bloc state managers
-├── injection_container.dart
-└── main.dart
+├── core/
+│   ├── errors/           # Failure types (ServerFailure, CredentialFailure, etc.)
+│   ├── network/          # DioClient (base HTTP client)
+│   └── theme/            # AppTheme + ThemeBloc (light/dark)
+│
+├── features/
+│   ├── auth/
+│   │   ├── data/
+│   │   │   ├── datasources/    # AuthRemoteDataSource (API calls)
+│   │   │   └── repositories/  # AuthRepositoryImpl
+│   │   ├── domain/
+│   │   │   ├── entities/       # (token handled as String)
+│   │   │   ├── repositories/   # AuthRepository (abstract)
+│   │   │   └── usecases/       # LoginUseCase
+│   │   └── presentation/
+│   │       ├── bloc/           # AuthBloc, AuthEvent, AuthState
+│   │       └── pages/          # LoginPage
+│   │
+│   └── product/
+│       ├── data/
+│       │   ├── datasources/    # ProductRemoteDataSource, ProductLocalDataSource
+│       │   ├── models/         # ProductModel (JSON serialization)
+│       │   └── repositories/  # ProductRepositoryImpl
+│       ├── domain/
+│       │   ├── entities/       # ProductEntity
+│       │   ├── repositories/   # ProductRepository (abstract)
+│       │   └── usecases/       # GetProducts, GetFavorites, ToggleFavorite
+│       └── presentation/
+│           ├── bloc/           # ProductBloc, ProductEvent, ProductState
+│           └── pages/          # ProductListPage, ProductDetailPage
+│
+├── injection_container.dart    # GetIt dependency injection
+└── main.dart                   # Entry point
 ```
 
-### Domain Layer (Inner Core)
-- **Entities**: Business logic definitions (e.g., `ProductEntity` including `isFavorite`). Pure Dart, completely decoupled from data layers.
-- **Use Cases**: Encapsulates specific application flow actions (e.g., `GetProducts`, `ToggleFavorite`).
-- **Repositories**: Contract/interface specifications implemented by the Data layer.
+### Layer Responsibilities
 
-### Data Layer (Infrastructure)
-- **Models**: Extends entities to support JSON serialization and safe data transformations (e.g., `ProductModel.fromJson`).
-- **Data Sources**: Handles data fetches.
-  - `ProductRemoteDataSource`: Interacts with Fake Store API using Dio.
-  - `ProductLocalDataSource`: Manages local favorites storage using `SharedPreferences`.
-- **Repository Implementations**: Coordinates sources, merges remote/local status, and translates errors into custom Failures (`ServerFailure`, `CredentialFailure`, `CacheFailure`).
-
-### Presentation Layer (UI & State)
-- **BLoCs**: Manages events and maps them to states.
-- **Pages / Widgets**: Direct UI widgets building layout from state templates.
+| Layer | Responsibility |
+|---|---|
+| **Data** | API calls, local storage, JSON parsing, repository implementation |
+| **Domain** | Business logic, use cases, abstract repository contracts, entities |
+| **Presentation** | UI widgets, BLoC state management, user interaction |
 
 ---
 
-## 🔄 State Management Explanation
+## 🔄 State Management
 
-We utilize `flutter_bloc` adhering to explicit semantic events and a strict subclass/multiple-state pattern.
+The app uses **flutter_bloc** (BLoC pattern) for all state management.
 
-### 1. Product Filter States & Parameters
-To prevent the UI from resetting active criteria during loading transitions, the base state `ProductState` implements filter parameters:
-- `searchQuery` (String)
-- `selectedCategory` (String)
-- `sortOrder` (String - `price_asc` | `price_desc`)
+### AuthBloc
+Manages the authentication flow:
 
-Subclasses:
-- `ProductInitial`: Instantiated with default values (query: `''`, category: `'All'`, sort: `'price_asc'`).
-- `ProductLoading`: Extends base state, maintaining filter parameters so filters remain highlighted on UI during fetching.
-- `ProductLoaded`: Contains master database list (`allProducts`) and UI list (`filteredProducts`).
-- `ProductError`: Emits details along with active filters.
+```
+AuthLoginSubmitted → AuthLoading → AuthSuccess / AuthError
+                                          └── AuthValidationError   (empty fields)
+                                          └── AuthCredentialError   (wrong username/password)
+                                          └── AuthError             (server/network error)
+```
 
-### 2. Search Debouncing Stream
-We intercept rapid keystrokes to prevent API/pipeline processing spam. RxDart operators are attached exclusively to `SearchQueryFilterChanged`:
+### ProductBloc
+Manages the product catalog with client-side filtering:
+
+```
+FetchCatalogStarted      → ProductLoading → ProductLoaded
+SearchQueryFilterChanged → ProductLoaded (filtered)
+CategoryFilterChanged    → ProductLoaded (filtered)
+ToggleFavoritePressed    → ProductLoaded (updated favorites)
+```
+
+> **Note:** All states carry `searchQuery`, `selectedCategory`, and `sortOrder` to prevent UI resets during state transitions.
+
+### ThemeBloc
+Manages the app-wide light/dark theme toggle, persisted via `SharedPreferences`:
+
+```
+ThemeToggled → ThemeState(isDark: true/false)
+```
+
+---
+
+## 📦 Third-Party Libraries
+
+| Package | Version | Purpose |
+|---|---|---|
+| `flutter_bloc` | ^9.1.1 | BLoC / Cubit state management |
+| `bloc` | ^9.0.0 | Core BLoC library |
+| `equatable` | ^2.0.7 | Value equality for BLoC states/events |
+| `get_it` | ^8.0.3 | Service locator / dependency injection |
+| `dio` | ^5.8.0+1 | HTTP client for API requests |
+| `shared_preferences` | ^2.5.3 | Local key-value storage (favorites, theme) |
+| `dartz` | ^0.10.1 | Functional programming (`Either` for error handling) |
+
+---
+
+## ✨ Features
+
+### Core
+- [x] Browse product catalog from FakeStore API
+- [x] Search products by keyword
+- [x] Filter by category (All, Electronics, Jewelery, Men's, Women's)
+- [x] View product details (image, description, price, rating)
+- [x] Quantity selector with live total calculation
+- [x] Add to cart feedback (snackbar confirmation)
+- [x] Mark/unmark favorites (persisted locally)
+- [x] JWT-based authentication via FakeStore API
+
+### Bonus
+- [x] 🌙 **Dark / Light mode toggle** (persisted across sessions)
+- [x] 🎨 **Premium marketplace UI** with glassmorphism & gradients
+- [x] ✨ **Animations** (fade-in on login, animated containers, chip transitions)
+- [x] 💾 **Offline caching** for favorite products via SharedPreferences
+- [x] 🛡️ **Differentiated error handling** (Validation / Credential / Server errors)
+
+---
+
+## 🔌 API Reference
+
+Base URL: `https://fakestoreapi.com`
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/auth/login` | POST | Authenticate and receive JWT token |
+| `/products` | GET | Fetch all products |
+| `/products/categories` | GET | Fetch all categories |
+
+> The login endpoint returns **HTTP 201** with `{ "token": "..." }`.
+
+---
+
+## 🗂️ Error Handling
+
+Errors are mapped through a `Failure` hierarchy:
+
 ```dart
-on<SearchQueryFilterChanged>(
-  _onSearchQueryFilterChanged,
-  transformer: (events, mapper) => events
-      .debounceTime(const Duration(milliseconds: 300))
-      .switchMap(mapper),
-);
+abstract class Failure
+  ├── ServerFailure     // Network errors, unexpected server responses
+  ├── CacheFailure      // Local storage read/write errors
+  └── CredentialFailure // Invalid username or password (HTTP 400/401)
 ```
 
-### 3. Central Filter Processing Pipeline
-Filters are computed synchronously inside the BLoC by casting to `ProductLoaded` and piping through a unified selection chain:
-$$\text{Category Matching} \rightarrow \text{Search Query Contains} \rightarrow \text{Price Sorting}$$
-
-### 4. Differentiated Authentication Errors
-Validation, credential, and network faults are split into distinct error states:
-- `AuthValidationError`: Local validations (e.g. empty fields, password < 6 characters).
-- `AuthCredentialError`: Incorrect username/password returns (HTTP 400/401 Bad Request).
-- `AuthServerError`: Connection failure or API timeouts.
-
----
-
-## 📦 Third-Party Libraries Used
-
-| Library | Version | Description |
-| :--- | :--- | :--- |
-| **`flutter_bloc`** | `^8.1.3` | Event-driven State Management pattern implementation. |
-| **`get_it`** | `^7.6.0` | Service Locator for dependency injection (DI). |
-| **`dio`** | `^5.4.0` | HTTP Client supporting request, response, and error interceptors. |
-| **`shared_preferences`** | `^2.2.2` | Persistent caching for favorite product IDs locally. |
-| **`equatable`** | `^2.0.5` | Value-equality comparison to optimize rebuild triggers. |
-| **`rxdart`** | `^0.27.7` | Stream extensions for search debounce and switchMap operators. |
-
----
-
-## 🔑 Default Credentials for Login
-Because the Fake Store API login endpoint requires registered API users, please use the credentials below to log in:
-
-*   **Username**: `johnd`
-*   **Password**: `m38rmF$`
+Each `Failure` is caught in the BLoC layer and converted to a specific UI state, which renders the appropriate error message or snackbar to the user.
