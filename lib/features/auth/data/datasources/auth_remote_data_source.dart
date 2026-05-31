@@ -20,14 +20,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'password': password,
         },
       );
-      if (response.statusCode == 200) {
-        final token = response.data['token'] as String;
+      final statusCode = response.statusCode ?? 0;
+      if (statusCode >= 200 && statusCode < 300) {
+        final token = response.data['token'].toString();
         return token;
       } else {
         throw DioException(
           requestOptions: response.requestOptions,
           response: response,
-          message: 'Server returned error code: ${response.statusCode}',
+          message: 'Server returned error code: $statusCode',
         );
       }
     } catch (e) {

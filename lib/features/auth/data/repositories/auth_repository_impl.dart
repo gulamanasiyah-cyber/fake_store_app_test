@@ -13,14 +13,18 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       return await remoteDataSource.login(username, password);
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.badResponse || 
-          (e.response != null && (e.response!.statusCode == 400 || e.response!.statusCode == 401))) {
+      if (e.type == DioExceptionType.badResponse ||
+          (e.response != null &&
+              (e.response!.statusCode == 400 ||
+                  e.response!.statusCode == 401))) {
         throw const CredentialFailure('Incorrect username or password. Please try again.');
       } else {
         throw const ServerFailure('Connection failed. Please check your network or try again later.');
       }
+    } on TypeError catch (e) {
+      throw ServerFailure('Response parsing error: $e');
     } catch (e) {
-      throw const ServerFailure('An unexpected server error occurred.');
+      throw ServerFailure('An unexpected error occurred: $e');
     }
   }
 }
