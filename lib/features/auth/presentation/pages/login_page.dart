@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
+import '../../../product/presentation/pages/product_list_page.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -34,17 +35,7 @@ class _LoginPageState extends State<LoginPage> {
             if (state is AuthSuccess) {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const Scaffold(
-                    body: Center(
-                      child: Text(
-                        'Login Success!\nWelcome to Home Placeholder.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
+                MaterialPageRoute(builder: (context) => const ProductListPage()),
               );
             } else if (state is AuthError) {
               ScaffoldMessenger.of(context).showSnackBar(
